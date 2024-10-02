@@ -1,0 +1,160 @@
+-- 1. Location of User 
+SELECT * FROM dbde.post
+WHERE location IN ('agra' ,'maharashtra','west bengal');
+
+
+-- 2. Most Followed Hashtag
+SELECT hashtag_name AS "Hashtags", COUNT(hashtag_follow.hashtag_id) AS "Total Follows"
+FROM dbde.hashtags
+INNER JOIN dbde.hashtag_follow ON hashtags.hashtag_id = hashtag_follow.hashtag_id
+GROUP BY hashtag_follow.hashtag_id, hashtag_name
+ORDER BY COUNT(hashtag_follow.hashtag_id) DESC
+LIMIT 5;
+
+
+-- 3. Most Used Hashtags
+SELECT 
+    hashtag_name AS "Trending Hashtags", 
+    COUNT(post_tags.hashtag_id) AS "Times Used"
+FROM dbde.hashtags
+INNER JOIN dbde.post_tags ON hashtags.hashtag_id = post_tags.hashtag_id
+GROUP BY post_tags.hashtag_id,hashtags.hashtag_name
+ORDER BY COUNT(post_tags.hashtag_id) DESC
+LIMIT 10;
+
+
+-- 4. Most Inactive User
+SELECT user_id, username AS "Most Inactive User"
+FROM dbde.users
+WHERE user_id NOT IN (SELECT user_id FROM post);
+
+ 
+-- 5. Most Likes Posts
+SELECT post_likes.post_id, COUNT(post_likes.post_id) AS num_likes
+FROM dbde.post_likes
+INNER JOIN dbde.post ON post.post_id = post_likes.post_id
+GROUP BY post_likes.post_id
+ORDER BY num_likes DESC;
+
+
+-- 6. Average post per user
+SELECT ROUND((COUNT(post_id) / COUNT(DISTINCT user_id) ),2) AS "Average Post per User" 
+FROM dbde.post;
+
+-- 7. no. of login by per user
+SELECT user_id, email, username, login.login_id AS login_number
+FROM dbde.users 
+NATURAL JOIN dbde.login;
+
+
+-- 8. User who liked every single post (CHECK FOR BOT)
+SELECT users.username, COUNT(*) AS num_likes
+FROM dbde.users
+INNER JOIN dbde.post_likes ON users.user_id = post_likes.user_id
+GROUP BY post_likes.user_id, users.username
+HAVING COUNT(*) = (SELECT COUNT(*) FROM dbde.post);
+
+-- 9. User Never Comment 
+SELECT user_id, username AS "User Never Comment"
+FROM dbde.users
+WHERE user_id NOT IN (SELECT user_id FROM dbde.comments);
+
+-- 10. User who commented on every post (CHECK FOR BOT)
+SELECT users.username, Count(*) AS num_comment
+FROM dbde.users 
+INNER JOIN dbde.comments ON users.user_id = comments.user_id 
+GROUP  BY comments.user_id,users.username
+HAVING COUNT(*)= (SELECT Count(*) FROM dbde.comments); 
+
+-- 11. User Not Followed by anyone
+SELECT user_id, username AS "User Not Followed by anyone"
+FROM dbde.users
+WHERE user_id NOT IN (SELECT followee_id FROM dbde.follows);
+
+-- 12. User Not Following Anyone
+SELECT user_id, username AS "User Not Following Anyone"
+FROM dbde.users
+WHERE user_id NOT IN (SELECT follower_id FROM dbde.follows);
+
+-- 13. Posted more than 5 times
+SELECT user_id, COUNT(user_id) AS post_count
+FROM dbde.post
+GROUP BY user_id
+HAVING COUNT(user_id) > 5
+ORDER BY COUNT(user_id) DESC;
+
+
+
+-- 14. Followers > 40
+SELECT followee_id, COUNT(follower_id) AS follower_count 
+FROM dbde.follows
+GROUP BY followee_id
+HAVING COUNT(follower_id)> 40
+ORDER BY COUNT(follower_id) DESC;
+
+
+-- 15. Any specific word in comment
+SELECT * FROM dbde.comments
+WHERE comment_text='Cant get my eyes off';
+
+
+-- 16. Longest captions in post
+SELECT user_id, caption, LENGTH(post.caption) AS caption_length FROM dbde.post
+ORDER BY caption_length DESC LIMIT 5;
+
+
+
+-- 17. Count the Number of Comments and Likes for Each Post:
+SELECT p.post_id, COUNT(c.comment_id) AS num_comments, COUNT(pl.user_id) AS num_likes
+FROM dbde.post p
+LEFT JOIN dbde.comments c ON p.post_id = c.post_id
+LEFT JOIN dbde.post_likes pl ON p.post_id = pl.post_id
+GROUP BY p.post_id
+ORDER BY p.post_id;
+
+
+-- 18. Identify Users with the Highest Follower Count:
+SELECT u.username, COUNT(f.follower_id) AS follower_count
+FROM dbde.users u
+LEFT JOIN dbde.follows f ON u.user_id = f.followee_id
+GROUP BY u.user_id, u.username
+ORDER BY follower_count DESC;
+
+
+-- 19. Find the Most Active Day of the Week for Posting:
+SELECT EXTRACT(DOW FROM created_at) AS day_of_week, COUNT(*) AS num_posts
+FROM dbde.post
+GROUP BY day_of_week
+ORDER BY num_posts DESC;
+
+
+-- 20. Calculate the Average Video Size Uploaded by Users:
+SELECT AVG(v.size) AS avg_video_size_mb
+FROM dbde.videos v;
+
+
+-- 21. Target inactive users and send them promotional emails to encourage them to start posting.
+SELECT u.username, u.email
+FROM dbde.users u
+LEFT JOIN dbde.post p ON u.user_id = p.user_id
+WHERE p.post_id IS NULL;
+
+
+
+-- 22	. Identify Users Likely to Respond Positively to Ad Campaigns
+SELECT u.username, 
+       COUNT(DISTINCT pl.post_id) + COUNT(DISTINCT c.comment_id) + COUNT(DISTINCT b.post_id) AS total_engagement
+FROM dbde.users u
+LEFT JOIN dbde.post_likes pl ON u.user_id = pl.user_id
+LEFT JOIN dbde.comments c ON u.user_id = c.user_id
+LEFT JOIN dbde.bookmarks b ON u.user_id = b.user_id
+GROUP BY u.user_id, u.username
+ORDER BY total_engagement DESC;
+
+
+-- 23. User Loyalty: Who are the most loyal users based on their activity history and engagement
+SELECT user_id,               
+       username,
+       created_at
+FROM   dbde.users
+ORDER  BY created_at DESC;
